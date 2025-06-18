@@ -1,0 +1,33 @@
+/* Google Vim Navigation Styles */
+
+.vim-nav-focused {
+  outline: 2px solid #4285f4 !important;
+  outline-offset: 2px !important;
+  border-radius: 4px !important;
+  background-color: rgba(66, 133, 244, 0.1) !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.vim-nav-result-focused {
+  background-color: rgba(66, 133, 244, 0.05) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2) !important;
+  transition: all 0.2s ease-in-out !important;
+  margin: 2px 0 !important;
+  padding: 4px !important;
+}
+
+/* Ensure focus is visible on different Google layouts */
+.g .vim-nav-focused,
+.yuRUbf .vim-nav-focused,
+[data-ved] .vim-nav-focused {
+  position: relative;
+  z-index: 1;
+}
+
+/* Smooth transitions for better UX */
+.vim-nav-focused:hover,
+.vim-nav-result-focused:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(66, 133, 244, 0.25) !important;
+}

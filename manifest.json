@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Google HJKL Navigation",
+  "version": "1.0.0",
+  "description": "Navigate Google search results with vim-like hjkl keys",
+  "content_scripts": [
+    {
+      "matches": ["*://www.google.com/search*", "*://www.google.co.jp/search*"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "permissions": ["activeTab"]
+}
