@@ -25,30 +25,29 @@ class GoogleVimNavigation {
       return false;
     }
     
-    // Focus only on main title links in search results
+    // Focus on main title links - using more flexible selectors
     const selectors = [
-      // Main title links in standard search results
-      '.g h3 a:first-of-type',          // Standard result titles
-      '.yuRUbf > a',                    // Primary result link (new layout)
-      '.rc > .yuRUbf > a',              // Result container title
-      '.tF2Cxc > .yuRUbf > a',          // Alternative result structure
+      // Standard search results - main title links
+      '.g h3 a',                        // Most common: h3 title links
+      '.yuRUbf a',                      // New layout primary links
+      '.tF2Cxc h3 a',                   // Alternative structure
+      '.rc h3 a',                       // Results container
       
-      // Video results (main titles only)
-      '.g-blk h3 a:first-of-type',      // Video block titles
-      '.rGhul h3 a',                    // Video carousel title
+      // Video and special content
+      '.g-blk h3 a',                    // Video block titles
+      '.video-result h3 a',             // Video results
       
-      // News results (main titles only)  
-      '.SoaBEf h3 a',                   // News carousel titles
-      '.WlydOe h3 a',                   // News article titles
-      '.mCBkyc > a',                    // News result main link
+      // News results
+      '.SoaBEf h3 a',                   // News carousel
+      '.WlydOe h3 a',                   // News articles
       
-      // Special result types (main links only)
-      '.kp-blk h3 a:first-of-type',     // Knowledge panel main links
-      '.g [data-header-feature] h3 a',  // Featured result titles
+      // Knowledge panel and rich results
+      '.kp-blk h3 a',                   // Knowledge panel
+      '.mod h3 a',                      // Module results
       
-      // Ensure we get the primary link with favicon
-      '.g a[data-ved]:has(br) + h3 a',  // Link after favicon
-      '.g .kvH3mc > a',                 // Direct title container
+      // Fallback selectors for main links
+      '[data-ved] h3 a',                // Data-ved containers with h3
+      '.g > div > div > div > a[href]:has(h3)', // Direct structure
     ];
 
     this.searchResults = [];
@@ -58,7 +57,7 @@ class GoogleVimNavigation {
       try {
         const elements = document.querySelectorAll(selector);
         elements.forEach(el => {
-          // Filter for main result links only
+          // Basic filtering for valid external links
           if (el.href && 
               !el.href.includes('google.com/search') &&
               !el.href.includes('accounts.google.com') &&
@@ -70,21 +69,18 @@ class GoogleVimNavigation {
               el.href.trim() !== '' &&
               !processedUrls.has(el.href)) {
             
-            // Check if this is a main title link (not a sublink)
-            const parent = el.closest('.g, .yuRUbf, .tF2Cxc, .rGhul, .SoaBEf, .WlydOe');
-            const isMainLink = parent && (
-              el.matches('h3 a') || 
-              el.parentElement?.matches('h3') ||
-              el.closest('.yuRUbf') ||
-              el.matches('.yuRUbf > a') ||
-              (parent.querySelector('h3 a') === el)
-            );
+            // Check if this is likely a main title link
+            const isInH3 = el.closest('h3') !== null;
+            const hasValidParent = el.closest('.g, .yuRUbf, .tF2Cxc, .g-blk, .SoaBEf, .WlydOe, .kp-blk, .mod') !== null;
+            const hasText = el.textContent && el.textContent.trim().length > 3;
             
             // Check visibility
-            const isVisible = el.offsetParent !== null && 
+            const rect = el.getBoundingClientRect();
+            const isVisible = rect.width > 0 && rect.height > 0 && 
                             window.getComputedStyle(el).display !== 'none';
             
-            if (isMainLink && isVisible) {
+            // Accept if it's in h3 or has valid parent and text
+            if ((isInH3 || hasValidParent) && hasText && isVisible) {
               this.searchResults.push(el);
               processedUrls.add(el.href);
             }
@@ -104,11 +100,20 @@ class GoogleVimNavigation {
 
     console.log(`Found ${this.searchResults.length} search results`);
     
-    // Debug log for specific types
-    const youtubeCount = this.searchResults.filter(el => el.href.includes('youtube.com') || el.href.includes('youtu.be')).length;
-    const facebookCount = this.searchResults.filter(el => el.href.includes('facebook.com')).length;
-    if (youtubeCount > 0 || facebookCount > 0) {
-      console.log(`Including ${youtubeCount} YouTube and ${facebookCount} Facebook results`);
+    // Debug information about found results
+    if (this.searchResults.length > 0) {
+      console.log('First 3 results:', this.searchResults.slice(0, 3).map(el => ({
+        text: el.textContent?.slice(0, 50) + '...',
+        href: el.href,
+        selector: el.tagName + (el.className ? '.' + el.className.split(' ')[0] : '')
+      })));
+    } else {
+      // Debug: check what elements exist
+      const debugSelectors = ['.g', '.yuRUbf', 'h3 a', '[data-ved]'];
+      debugSelectors.forEach(sel => {
+        const count = document.querySelectorAll(sel).length;
+        console.log(`Debug: ${sel} found ${count} elements`);
+      });
     }
     
     return this.searchResults.length > 0;
@@ -327,11 +332,13 @@ function initializeNavigation(retryCount = 0) {
   navigationInstance = new GoogleVimNavigation();
   
   // Check if initialization was successful
-  if (!navigationInstance.searchResults.length && retryCount < 5) {
-    console.log(`No search results found, retrying initialization (attempt ${retryCount + 1}/5)...`);
+  if (navigationInstance.searchResults.length === 0 && retryCount < 3) {
+    console.log(`No search results found, retrying initialization (attempt ${retryCount + 1}/3)...`);
     setTimeout(() => {
       initializeNavigation(retryCount + 1);
-    }, 300 * (retryCount + 1)); // Exponential backoff
+    }, 500 * (retryCount + 1)); // Longer delays
+  } else if (navigationInstance.searchResults.length === 0) {
+    console.log('Failed to find search results after 3 attempts. Check if this is a search results page.');
   }
 }
 
