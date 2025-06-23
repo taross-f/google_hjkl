@@ -71,6 +71,10 @@ class GoogleVimNavigation {
         this.navigatePrevPage();
         break;
       case 'KeyL':
+        // Don't handle Cmd+L (or Ctrl+L on Windows/Linux)
+        if (e.metaKey || e.ctrlKey) {
+          return; // Let Chrome handle the default behavior
+        }
         e.preventDefault();
         this.navigateNextPage();
         break;
