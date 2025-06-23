@@ -45,9 +45,16 @@ class GoogleVimNavigation {
       '.tF2Cxc h3 a',                   // Alternative structure
       '.rc h3 a',                       // Results container
       
-      // Video and special content
+      // Video and special content (including YouTube)
       '.g-blk h3 a',                    // Video block titles
       '.video-result h3 a',             // Video results
+      '.g .yuRUbf a[href*="youtube.com"]', // YouTube links in standard results
+      '.g h3 a[href*="youtube.com"]',   // YouTube title links
+      '.g a[href*="youtube.com"]:has(h3)', // Links containing h3 elements
+      '[data-ved] a[href*="youtube.com"]', // Data-ved containers with YouTube links
+      '.video-carousel a[href*="youtube.com"]', // Video carousel items
+      '.g .T47uwc a[href*="youtube.com"]', // Video thumbnail containers
+      '.g .qPKGkd a[href*="youtube.com"]', // Video result containers
       
       // News results
       '.SoaBEf h3 a',                   // News carousel
@@ -83,16 +90,17 @@ class GoogleVimNavigation {
             
             // Check if this is likely a main title link
             const isInH3 = el.closest('h3') !== null;
-            const hasValidParent = el.closest('.g, .yuRUbf, .tF2Cxc, .g-blk, .SoaBEf, .WlydOe, .kp-blk, .mod') !== null;
+            const hasValidParent = el.closest('.g, .yuRUbf, .tF2Cxc, .g-blk, .SoaBEf, .WlydOe, .kp-blk, .mod, .T47uwc, .qPKGkd') !== null;
             const hasText = el.textContent && el.textContent.trim().length > 3;
+            const isYouTubeLink = el.href.includes('youtube.com');
             
             // Check visibility
             const rect = el.getBoundingClientRect();
             const isVisible = rect.width > 0 && rect.height > 0 && 
                             window.getComputedStyle(el).display !== 'none';
             
-            // Accept if it's in h3 or has valid parent and text
-            if ((isInH3 || hasValidParent) && hasText && isVisible) {
+            // Accept if it's in h3, has valid parent, or is a YouTube link with text
+            if ((isInH3 || hasValidParent || isYouTubeLink) && hasText && isVisible) {
               this.searchResults.push(el);
               processedUrls.add(el.href);
             }
@@ -110,7 +118,8 @@ class GoogleVimNavigation {
       return (rectA.top + rectA.left) - (rectB.top + rectB.left);
     });
 
-    console.log(`Found ${this.searchResults.length} search results`);
+    const youtubeCount = this.searchResults.filter(el => el.href.includes('youtube.com')).length;
+    console.log(`Found ${this.searchResults.length} search results (${youtubeCount} YouTube)`);
     
     // Try to restore previous position
     if (previousResultHref && this.searchResults.length > 0) {
