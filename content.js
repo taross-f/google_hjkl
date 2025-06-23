@@ -1,3 +1,9 @@
+// Prevent multiple script execution
+if (window.googleVimNavigationLoaded) {
+  console.log('Google Vim Navigation already loaded, skipping...');
+} else {
+  window.googleVimNavigationLoaded = true;
+
 class GoogleVimNavigation {
   constructor() {
     this.currentIndex = -1;
@@ -341,9 +347,19 @@ class GoogleVimNavigation {
 
 // Singleton instance to prevent multiple instances
 let navigationInstance = null;
+let isInitializing = false;
 
 // Initialize navigation with retry mechanism
 function initializeNavigation(retryCount = 0) {
+  // Prevent multiple simultaneous initializations
+  if (isInitializing) {
+    console.log('Initialization already in progress, skipping...');
+    return;
+  }
+  
+  isInitializing = true;
+  console.log(`Attempting initialization ${new Date()}`);
+  
   // Destroy existing instance if it exists
   if (navigationInstance) {
     navigationInstance.destroy();
@@ -357,10 +373,14 @@ function initializeNavigation(retryCount = 0) {
   if (navigationInstance.searchResults.length === 0 && retryCount < 3) {
     console.log(`No search results found, retrying initialization (attempt ${retryCount + 1}/3)...`);
     setTimeout(() => {
+      isInitializing = false; // Reset flag before retry
       initializeNavigation(retryCount + 1);
     }, 500 * (retryCount + 1)); // Longer delays
-  } else if (navigationInstance.searchResults.length === 0) {
-    console.log('Failed to find search results after 3 attempts. Check if this is a search results page.');
+  } else {
+    if (navigationInstance.searchResults.length === 0) {
+      console.log('Failed to find search results after 3 attempts. Check if this is a search results page.');
+    }
+    isInitializing = false; // Reset flag after completion
   }
 }
 
@@ -380,21 +400,23 @@ let isReinitializing = false;
 const pageChangeObserver = new MutationObserver((mutations) => {
   const url = location.href;
   
-  // Skip if already reinitializing
-  if (isReinitializing) {
+  // Skip if already reinitializing or initializing
+  if (isReinitializing || isInitializing) {
     return;
   }
   
-  // Check if URL changed or if search results were updated
+  // Only react to significant changes - URL changes or major DOM updates
+  const urlChanged = url !== lastUrl;
   const hasSearchMutation = mutations.some(mutation => {
     const target = mutation.target;
-    return target.id === 'search' || 
-           target.id === 'rso' || 
-           target.classList?.contains('srg') ||
-           target.querySelector?.('#search, #rso, .srg');
+    // Only react to major container changes, not minor text/attribute changes
+    return mutation.type === 'childList' && 
+           (target.id === 'search' || 
+            target.id === 'rso' || 
+            target.classList?.contains('srg'));
   });
   
-  if (url !== lastUrl || hasSearchMutation) {
+  if (urlChanged || hasSearchMutation) {
     lastUrl = url;
     
     // Clear any pending reinitialization
@@ -419,3 +441,5 @@ pageChangeObserver.observe(document.body, {
   subtree: true,
   attributes: false
 });
+
+} // End of if (!window.googleVimNavigationLoaded)
