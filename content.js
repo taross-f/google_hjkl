@@ -14,6 +14,12 @@ class GoogleVimNavigation {
   }
 
   updateSearchResults() {
+    // Store current position to restore later
+    const previousIndex = this.currentIndex;
+    const previousResultHref = previousIndex >= 0 && this.searchResults[previousIndex] 
+      ? this.searchResults[previousIndex].href 
+      : null;
+    
     // Clear previous results
     this.searchResults = [];
     this.currentIndex = -1;
@@ -99,6 +105,22 @@ class GoogleVimNavigation {
     });
 
     console.log(`Found ${this.searchResults.length} search results`);
+    
+    // Try to restore previous position
+    if (previousResultHref && this.searchResults.length > 0) {
+      const restoredIndex = this.searchResults.findIndex(result => result.href === previousResultHref);
+      if (restoredIndex !== -1) {
+        this.currentIndex = restoredIndex;
+        console.log(`Restored navigation position to index ${restoredIndex}`);
+        // Apply focus to restored position
+        setTimeout(() => this.addFocus(), 100);
+      } else if (previousIndex < this.searchResults.length) {
+        // If exact URL not found, try to restore approximate position
+        this.currentIndex = Math.min(previousIndex, this.searchResults.length - 1);
+        console.log(`Restored approximate navigation position to index ${this.currentIndex}`);
+        setTimeout(() => this.addFocus(), 100);
+      }
+    }
     
     // Debug information about found results
     if (this.searchResults.length > 0) {
@@ -351,11 +373,17 @@ if (document.readyState === 'loading') {
 
 // Re-initialize on page changes (for Google's AJAX navigation)
 let lastUrl = location.href;
-let reinitTimer = null;
+let reinitializationTimer = null;
+let isReinitializing = false;
 
 // More robust page change detection
 const pageChangeObserver = new MutationObserver((mutations) => {
   const url = location.href;
+  
+  // Skip if already reinitializing
+  if (isReinitializing) {
+    return;
+  }
   
   // Check if URL changed or if search results were updated
   const hasSearchMutation = mutations.some(mutation => {
@@ -370,14 +398,17 @@ const pageChangeObserver = new MutationObserver((mutations) => {
     lastUrl = url;
     
     // Clear any pending reinitialization
-    if (reinitTimer) {
-      clearTimeout(reinitTimer);
+    if (reinitializationTimer) {
+      clearTimeout(reinitializationTimer);
     }
     
     // Debounce reinitialization to avoid multiple rapid calls
-    reinitTimer = setTimeout(() => {
+    reinitializationTimer = setTimeout(() => {
+      isReinitializing = true;
       console.log('Page change detected, reinitializing navigation...');
       initializeNavigation();
+      // Reset flag after initialization
+      setTimeout(() => { isReinitializing = false; }, 1000);
     }, 800); // Slightly longer delay to ensure DOM is ready
   }
 });
