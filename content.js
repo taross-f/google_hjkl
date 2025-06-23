@@ -3,6 +3,7 @@ class GoogleVimNavigation {
     this.currentIndex = -1;
     this.searchResults = [];
     this.isActive = false;
+    this.keydownHandler = null; // Store reference to event handler
     this.init();
   }
 
@@ -135,7 +136,8 @@ class GoogleVimNavigation {
   }
 
   attachKeyboardListeners() {
-    document.addEventListener('keydown', (e) => {
+    // Store the handler reference so we can remove it later
+    this.keydownHandler = (e) => {
       // Only activate on first keypress of j, k, h, l, or Enter
       if (['KeyJ', 'KeyK', 'KeyH', 'KeyL', 'Enter'].includes(e.code)) {
         // Prevent default browser behavior
@@ -146,7 +148,9 @@ class GoogleVimNavigation {
           this.handleKeypress(e);
         }
       }
-    });
+    };
+    
+    document.addEventListener('keydown', this.keydownHandler);
   }
 
   handleKeypress(e) {
@@ -319,15 +323,43 @@ class GoogleVimNavigation {
     `;
     document.head.appendChild(style);
   }
+  
+  destroy() {
+    // Clean up event listeners
+    if (this.keydownHandler) {
+      document.removeEventListener('keydown', this.keydownHandler);
+      this.keydownHandler = null;
+    }
+    
+    // Remove focus from any currently focused elements
+    this.removeFocus();
+    
+    // Clear search results
+    this.searchResults = [];
+    this.currentIndex = -1;
+  }
+}
+
+// Singleton instance to prevent multiple instances
+let navigationInstance = null;
+
+// Initialize navigation
+function initializeNavigation() {
+  // Destroy existing instance if it exists
+  if (navigationInstance) {
+    navigationInstance.destroy();
+    navigationInstance = null;
+  }
+  
+  // Create new instance
+  navigationInstance = new GoogleVimNavigation();
 }
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    new GoogleVimNavigation();
-  });
+  document.addEventListener('DOMContentLoaded', initializeNavigation);
 } else {
-  new GoogleVimNavigation();
+  initializeNavigation();
 }
 
 // Re-initialize on page changes (for Google's AJAX navigation)
@@ -337,7 +369,7 @@ new MutationObserver(() => {
   if (url !== lastUrl) {
     lastUrl = url;
     setTimeout(() => {
-      new GoogleVimNavigation();
+      initializeNavigation();
     }, 500);
   }
 }).observe(document, { subtree: true, childList: true });
