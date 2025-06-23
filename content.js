@@ -14,74 +14,41 @@ class GoogleVimNavigation {
   }
 
   updateSearchResults() {
-    // Comprehensive Google search result selectors for all content types
+    // Clear previous results
+    this.searchResults = [];
+    this.currentIndex = -1;
+    
+    // Wait a bit if search results container is not ready
+    const searchContainer = document.querySelector('#search, #rso, .srg, [data-async-context]');
+    if (!searchContainer) {
+      console.log('Search container not ready, will retry...');
+      return false;
+    }
+    
+    // Focus only on main title links in search results
     const selectors = [
-      // Standard web results
-      'div[data-ved] h3 a', // Main organic results
-      '.g h3 a', // Standard results
-      '.rc h3 a', // Results container
-      '.yuRUbf a', // New layout
-      '[data-ved] a[href^="/url"]', // URL redirects
+      // Main title links in standard search results
+      '.g h3 a:first-of-type',          // Standard result titles
+      '.yuRUbf > a',                    // Primary result link (new layout)
+      '.rc > .yuRUbf > a',              // Result container title
+      '.tF2Cxc > .yuRUbf > a',          // Alternative result structure
       
-      // Video results (YouTube, etc.)
-      '.g-blk a[href*="youtube.com"]', // YouTube video blocks
-      '.g-blk a[href*="youtu.be"]', // YouTube short links
-      'g-card a[href*="youtube.com"]', // Video cards
-      '.rGhul a', // Video carousel items
-      '.BVG0Nb a', // Video result links
-      'div[jsname] a[href*="youtube.com"]', // Dynamic video results
-      '.video-result a', // Generic video results
-      '.g-scrolling-carousel a[href*="youtube.com"]', // Scrolling video carousels
+      // Video results (main titles only)
+      '.g-blk h3 a:first-of-type',      // Video block titles
+      '.rGhul h3 a',                    // Video carousel title
       
-      // Social media results
-      '.g a[href*="facebook.com"]', // Facebook results
-      '.g a[href*="twitter.com"]', // Twitter/X results
-      '.g a[href*="x.com"]', // X (formerly Twitter) results
-      '.g a[href*="instagram.com"]', // Instagram results
-      '.g a[href*="linkedin.com"]', // LinkedIn results
-      '.g a[href*="reddit.com"]', // Reddit results
-      '.g a[href*="tiktok.com"]', // TikTok results
+      // News results (main titles only)  
+      '.SoaBEf h3 a',                   // News carousel titles
+      '.WlydOe h3 a',                   // News article titles
+      '.mCBkyc > a',                    // News result main link
       
-      // Rich snippets and special formats
-      '.kp-blk a:not([href*="google.com"])', // Knowledge panel links
-      '.xpdopen a[href]:not([href*="google.com"])', // Expandable results
-      '.mod a[href]:not([href*="google.com"])', // Module results
-      '.g-blk a[href]:not([href*="google.com"])', // Block results
+      // Special result types (main links only)
+      '.kp-blk h3 a:first-of-type',     // Knowledge panel main links
+      '.g [data-header-feature] h3 a',  // Featured result titles
       
-      // Direct links without redirects
-      'a[data-ved][href^="http"]:not([href*="google.com"])', // Direct HTTP links
-      'a[data-ved][href^="https"]:not([href*="google.com"])', // Direct HTTPS links
-      
-      // News results
-      '.SoaBEf a', // News carousel
-      '.WlydOe a', // News articles
-      
-      // Image pack results
-      '.ivg-i a', // Image pack links
-      
-      // Shopping results
-      '.sh-np__click-target', // Shopping product links
-      '.shntl a', // Shopping list items
-      
-      // Local pack results
-      '.rllt__link', // Local business links
-      '.VkpGBb a', // Maps/local results
-      
-      // Featured snippets
-      '.FjYOQe a', // Featured snippet source links
-      
-      // People also ask
-      '.related-question-pair a:not([href*="google.com"])', // PAA links
-      
-      // Sitelinks
-      '.sld a', // Sitelink results
-      '.BNeawe a', // Alternative sitelinks
-      
-      // Generic catch-all selectors
-      '[data-sokoban-container] a[href]:not([href*="google.com"])', // Dynamic containers
-      '.MjjYud a[href]:not([href*="google.com"])', // Result containers
-      '.N54PNb a[href]:not([href*="google.com"])', // Alternative containers
-      '.hlcw0c a[href]:not([href*="google.com"])' // Text result containers
+      // Ensure we get the primary link with favicon
+      '.g a[data-ved]:has(br) + h3 a',  // Link after favicon
+      '.g .kvH3mc > a',                 // Direct title container
     ];
 
     this.searchResults = [];
@@ -91,23 +58,33 @@ class GoogleVimNavigation {
       try {
         const elements = document.querySelectorAll(selector);
         elements.forEach(el => {
-          // More comprehensive filtering
+          // Filter for main result links only
           if (el.href && 
               !el.href.includes('google.com/search') &&
               !el.href.includes('accounts.google.com') &&
               !el.href.includes('support.google.com') &&
               !el.href.includes('policies.google.com') &&
-              !el.href.includes('maps.google.com/maps?') && // Exclude map embeds
+              !el.href.includes('maps.google.com/maps?') &&
               !el.href.startsWith('javascript:') &&
               !el.href.startsWith('#') &&
               el.href.trim() !== '' &&
               !processedUrls.has(el.href)) {
             
-            // Additional checks for valid results
-            const isVisible = el.offsetParent !== null || window.getComputedStyle(el).display !== 'none';
-            const hasText = el.textContent.trim().length > 0 || el.querySelector('h3, h2, [role="heading"]');
+            // Check if this is a main title link (not a sublink)
+            const parent = el.closest('.g, .yuRUbf, .tF2Cxc, .rGhul, .SoaBEf, .WlydOe');
+            const isMainLink = parent && (
+              el.matches('h3 a') || 
+              el.parentElement?.matches('h3') ||
+              el.closest('.yuRUbf') ||
+              el.matches('.yuRUbf > a') ||
+              (parent.querySelector('h3 a') === el)
+            );
             
-            if (isVisible || hasText) {
+            // Check visibility
+            const isVisible = el.offsetParent !== null && 
+                            window.getComputedStyle(el).display !== 'none';
+            
+            if (isMainLink && isVisible) {
               this.searchResults.push(el);
               processedUrls.add(el.href);
             }
@@ -133,6 +110,8 @@ class GoogleVimNavigation {
     if (youtubeCount > 0 || facebookCount > 0) {
       console.log(`Including ${youtubeCount} YouTube and ${facebookCount} Facebook results`);
     }
+    
+    return this.searchResults.length > 0;
   }
 
   attachKeyboardListeners() {
@@ -237,24 +216,17 @@ class GoogleVimNavigation {
       const element = this.searchResults[this.currentIndex];
       element.classList.add('vim-nav-focused');
       
-      // Find the appropriate parent container for different result types
+      // Find the appropriate parent container for main results only
       const parentSelectors = [
         '.g',                    // Standard result container
         '.yuRUbf',              // New layout container
-        '[data-ved]',           // Data-ved container
-        '.g-blk',               // Block container (videos, etc.)
-        'g-card',               // Card container
+        '.tF2Cxc',              // Result wrapper
+        '.g-blk',               // Block container (videos)
         '.rGhul',               // Video carousel item
         '.kp-blk',              // Knowledge panel
-        '.xpdopen',             // Expandable container
-        '.mod',                 // Module container
-        '.MjjYud',              // Result wrapper
-        '.N54PNb',              // Alternative wrapper
-        '.hlcw0c',              // Text result wrapper
-        '.sh-np__click-target', // Shopping container
-        '.rllt__link',          // Local result
         '.SoaBEf',              // News carousel
-        '.WlydOe'               // News article
+        '.WlydOe',              // News article
+        '.mCBkyc'               // News container
       ];
       
       // Try each selector to find the closest parent
@@ -343,8 +315,8 @@ class GoogleVimNavigation {
 // Singleton instance to prevent multiple instances
 let navigationInstance = null;
 
-// Initialize navigation
-function initializeNavigation() {
+// Initialize navigation with retry mechanism
+function initializeNavigation(retryCount = 0) {
   // Destroy existing instance if it exists
   if (navigationInstance) {
     navigationInstance.destroy();
@@ -353,6 +325,14 @@ function initializeNavigation() {
   
   // Create new instance
   navigationInstance = new GoogleVimNavigation();
+  
+  // Check if initialization was successful
+  if (!navigationInstance.searchResults.length && retryCount < 5) {
+    console.log(`No search results found, retrying initialization (attempt ${retryCount + 1}/5)...`);
+    setTimeout(() => {
+      initializeNavigation(retryCount + 1);
+    }, 300 * (retryCount + 1)); // Exponential backoff
+  }
 }
 
 // Initialize when DOM is ready
@@ -364,12 +344,40 @@ if (document.readyState === 'loading') {
 
 // Re-initialize on page changes (for Google's AJAX navigation)
 let lastUrl = location.href;
-new MutationObserver(() => {
+let reinitTimer = null;
+
+// More robust page change detection
+const pageChangeObserver = new MutationObserver((mutations) => {
   const url = location.href;
-  if (url !== lastUrl) {
+  
+  // Check if URL changed or if search results were updated
+  const hasSearchMutation = mutations.some(mutation => {
+    const target = mutation.target;
+    return target.id === 'search' || 
+           target.id === 'rso' || 
+           target.classList?.contains('srg') ||
+           target.querySelector?.('#search, #rso, .srg');
+  });
+  
+  if (url !== lastUrl || hasSearchMutation) {
     lastUrl = url;
-    setTimeout(() => {
+    
+    // Clear any pending reinitialization
+    if (reinitTimer) {
+      clearTimeout(reinitTimer);
+    }
+    
+    // Debounce reinitialization to avoid multiple rapid calls
+    reinitTimer = setTimeout(() => {
+      console.log('Page change detected, reinitializing navigation...');
       initializeNavigation();
-    }, 500);
+    }, 800); // Slightly longer delay to ensure DOM is ready
   }
-}).observe(document, { subtree: true, childList: true });
+});
+
+// Observe for changes in the main content area
+pageChangeObserver.observe(document.body, { 
+  childList: true, 
+  subtree: true,
+  attributes: false
+});
