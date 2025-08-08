@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator</title>
+</head>
+<body>
+    <canvas id="canvas" width="128" height="128" style="border: 1px solid #ccc;"></canvas>
+    <br><br>
+    <button onclick="downloadIcon(16)">Download 16x16</button>
+    <button onclick="downloadIcon(32)">Download 32x32</button>
+    <button onclick="downloadIcon(48)">Download 48x48</button>
+    <button onclick="downloadIcon(128)">Download 128x128</button>
+
+    <script>
+        function drawIcon(size) {
+            const canvas = document.getElementById('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Background circle
+            const center = size / 2;
+            const radius = size * 0.45;
+            
+            ctx.beginPath();
+            ctx.arc(center, center, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#4285f4';
+            ctx.fill();
+            ctx.strokeStyle = '#2563eb';
+            ctx.lineWidth = Math.max(1, size / 32);
+            ctx.stroke();
+            
+            // HJKL keys in cross formation
+            const keySize = Math.max(8, size / 10);
+            const spacing = Math.max(12, size / 8);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 1;
+            
+            const fontSize = Math.max(6, size / 12);
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Helper function to draw a key
+            function drawKey(x, y, letter) {
+                // Key background
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.fillRect(x - keySize/2, y - keySize/2, keySize, keySize);
+                ctx.strokeRect(x - keySize/2, y - keySize/2, keySize, keySize);
+                
+                // Key letter
+                ctx.fillStyle = 'white';
+                ctx.fillText(letter, x, y);
+            }
+            
+            // Draw keys in vim hjkl layout
+            drawKey(center - spacing, center, 'H');        // Left (H)
+            drawKey(center, center + spacing, 'J');        // Down (J)  
+            drawKey(center, center - spacing, 'K');        // Up (K)
+            drawKey(center + spacing, center, 'L');        // Right (L)
+            
+            // Add directional arrows
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = Math.max(1, size / 64);
+            const arrowSize = Math.max(3, size / 32);
+            
+            // Left arrow (H)
+            const hx = center - spacing;
+            ctx.beginPath();
+            ctx.moveTo(hx - keySize/2 - arrowSize, center);
+            ctx.lineTo(hx - keySize/2 - arrowSize*2, center);
+            ctx.moveTo(hx - keySize/2 - arrowSize, center - arrowSize/2);
+            ctx.lineTo(hx - keySize/2 - arrowSize*2, center);
+            ctx.lineTo(hx - keySize/2 - arrowSize, center + arrowSize/2);
+            ctx.stroke();
+            
+            // Right arrow (L)
+            const lx = center + spacing;
+            ctx.beginPath();
+            ctx.moveTo(lx + keySize/2 + arrowSize, center);
+            ctx.lineTo(lx + keySize/2 + arrowSize*2, center);
+            ctx.moveTo(lx + keySize/2 + arrowSize, center - arrowSize/2);
+            ctx.lineTo(lx + keySize/2 + arrowSize*2, center);
+            ctx.lineTo(lx + keySize/2 + arrowSize, center + arrowSize/2);
+            ctx.stroke();
+            
+            // Up arrow (K)
+            const ky = center - spacing;
+            ctx.beginPath();
+            ctx.moveTo(center, ky - keySize/2 - arrowSize);
+            ctx.lineTo(center, ky - keySize/2 - arrowSize*2);
+            ctx.moveTo(center - arrowSize/2, ky - keySize/2 - arrowSize);
+            ctx.lineTo(center, ky - keySize/2 - arrowSize*2);
+            ctx.lineTo(center + arrowSize/2, ky - keySize/2 - arrowSize);
+            ctx.stroke();
+            
+            // Down arrow (J)
+            const jy = center + spacing;
+            ctx.beginPath();
+            ctx.moveTo(center, jy + keySize/2 + arrowSize);
+            ctx.lineTo(center, jy + keySize/2 + arrowSize*2);
+            ctx.moveTo(center - arrowSize/2, jy + keySize/2 + arrowSize);
+            ctx.lineTo(center, jy + keySize/2 + arrowSize*2);
+            ctx.lineTo(center + arrowSize/2, jy + keySize/2 + arrowSize);
+            ctx.stroke();
+        }
+        
+        function downloadIcon(size) {
+            drawIcon(size);
+            const canvas = document.getElementById('canvas');
+            const link = document.createElement('a');
+            link.download = `icon${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // Initial draw
+        drawIcon(128);
+    </script>
+</body>
+</html>

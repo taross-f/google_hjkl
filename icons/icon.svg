@@ -1,0 +1,38 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="#4285f4" stroke="#2563eb" stroke-width="4"/>
+  
+  <!-- HJKL keys layout -->
+  <g fill="white" font-family="Arial, sans-serif" font-weight="bold" text-anchor="middle" dominant-baseline="central">
+    <!-- H key -->
+    <rect x="20" y="45" width="16" height="16" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1"/>
+    <text x="28" y="53" font-size="12">H</text>
+    
+    <!-- J key -->
+    <rect x="40" y="65" width="16" height="16" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1"/>
+    <text x="48" y="73" font-size="12">J</text>
+    
+    <!-- K key -->
+    <rect x="40" y="45" width="16" height="16" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1"/>
+    <text x="48" y="53" font-size="12">K</text>
+    
+    <!-- L key -->
+    <rect x="60" y="45" width="16" height="16" rx="3" fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1"/>
+    <text x="68" y="53" font-size="12">L</text>
+  </g>
+  
+  <!-- Google "G" -->
+  <text x="94" y="68" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">G</text>
+  
+  <!-- Navigation arrows -->
+  <g stroke="white" stroke-width="2" fill="none">
+    <!-- Up arrow for K -->
+    <path d="M48 38 L48 33 M45 36 L48 33 L51 36"/>
+    <!-- Down arrow for J -->
+    <path d="M48 85 L48 90 M45 87 L48 90 L51 87"/>
+    <!-- Left arrow for H -->
+    <path d="M12 53 L7 53 M10 50 L7 53 L10 56"/>
+    <!-- Right arrow for L -->
+    <path d="M84 53 L89 53 M86 50 L89 53 L86 56"/>
+  </g>
+</svg>
