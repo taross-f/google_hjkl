@@ -1,0 +1,81 @@
+name: Publish Chrome Extension on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Compute version from tag
+        id: version
+        run: |
+          REF="${GITHUB_REF_NAME}"
+          CLEAN="${REF#v}"
+          echo "version=${CLEAN}" >> $GITHUB_OUTPUT
+
+      - name: Prepare build directory
+        run: |
+          mkdir -p build
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='.DS_Store' \
+            --exclude='store_assets' \
+            --exclude='README.md' \
+            --exclude='LOGGER_USAGE.md' \
+            --exclude='CHROME_STORE_CHECKLIST.md' \
+            --exclude='STORE_LISTING.md' \
+            --exclude='PRIVACY_POLICY.md' \
+            --exclude='create_icons.html' \
+            --exclude='.mcp.json' \
+            ./ build/
+
+      - name: Bump manifest version to release tag
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y jq
+          jq --arg v "${{ steps.version.outputs.version }}" '.version=$v' build/manifest.json > build/manifest.tmp.json
+          mv build/manifest.tmp.json build/manifest.json
+          test "$(jq -r '.manifest_version' build/manifest.json)" = "3"
+          echo "Manifest version set to ${{ steps.version.outputs.version }}"
+
+      - name: Create zip artifact
+        run: |
+          cd build
+          zip -r ../extension.zip .
+          cd ..
+
+      - name: Upload & Publish to Chrome Web Store
+        env:
+          EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        run: |
+          if [ -z "$EXTENSION_ID" ] || [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ] || [ -z "$REFRESH_TOKEN" ]; then
+            echo "Missing required secrets. Please set CHROME_EXTENSION_ID, CHROME_CLIENT_ID, CHROME_CLIENT_SECRET, CHROME_REFRESH_TOKEN" >&2
+            exit 1
+          fi
+          npx --yes chrome-webstore-upload-cli@3 upload \
+            --extension-id "$EXTENSION_ID" \
+            --client-id "$CLIENT_ID" \
+            --client-secret "$CLIENT_SECRET" \
+            --refresh-token "$REFRESH_TOKEN" \
+            --zip-path extension.zip
+          npx --yes chrome-webstore-upload-cli@3 publish \
+            --extension-id "$EXTENSION_ID" \
+            --client-id "$CLIENT_ID" \
+            --client-secret "$CLIENT_SECRET" \
+            --refresh-token "$REFRESH_TOKEN"
